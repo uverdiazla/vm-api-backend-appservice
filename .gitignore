@@ -1,0 +1,88 @@
+# Visual Studio / IDE files
+.vs/
+.vscode/
+*.user
+*.userosscache
+*.suo
+*.userprefs
+*.dbmdl
+*.dbproj.schemaview
+*.jfm
+*.pfx
+*.publishsettings
+orleans.codegen.cs
+
+# Build results
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+[Ww][Ii][Nn]32/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+bld/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+
+# .NET Core
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# MSTest test Results
+[Tt]est[Rr]esult*/
+[Bb]uild[Ll]og.*
+
+# NUnit
+*.VisualState.xml
+TestResult.xml
+nunit-*.xml
+
+# Build Results of an ATL Project
+[Dd]ebugPS/
+[Rr]eleasePS/
+dlldata.c
+
+# Benchmark Results
+BenchmarkDotNet.Artifacts/
+
+# .NET
+# # Local JSON config files
+appsettings.Development.json
+appsettings.local.json
+appsettings.*.json
+!appsettings.json
+
+# Sensitive data
+*.rsa
+*.key
+*.pem
+
+# SQL Server files
+*.mdf
+*.ldf
+*.ndf
+
+# Entity Framework Migrations (optional, may want to include these in the repo)
+# Migrations/
+
+# Temporary files
+*.swp
+*.*~
+*~
+.DS_Store
+Thumbs.db
+
+# Docker
+.dockerignore
+.docker/
+
+# Node.js dependencies (for front-end parts of the project)
+node_modules/
+npm-debug.log
+yarn-debug.log
+yarn-error.log 
