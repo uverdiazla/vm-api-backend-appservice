@@ -1,4 +1,3 @@
-using Microsoft.EntityFrameworkCore;
 using vm_api_backend_appservice.Data;
 using vm_api_backend_appservice.Exceptions;
 using vm_api_backend_appservice.Models;
@@ -11,11 +10,16 @@ namespace vm_api_backend_appservice.Services
     {
         private readonly IVirtualMachineRepository _vmRepository;
         private readonly VmDbContext _dbContext;
+        private readonly IVirtualMachineNotificationService _notificationService;
 
-        public VirtualMachineService(IVirtualMachineRepository vmRepository, VmDbContext dbContext)
+        public VirtualMachineService(
+            IVirtualMachineRepository vmRepository, 
+            VmDbContext dbContext,
+            IVirtualMachineNotificationService notificationService)
         {
             _vmRepository = vmRepository;
             _dbContext = dbContext;
+            _notificationService = notificationService;
         }
 
         public async Task<IEnumerable<VirtualMachineResponseDto>> GetAllVirtualMachinesAsync()
@@ -62,7 +66,12 @@ namespace vm_api_backend_appservice.Services
                 throw new BadRequestException("Failed to create virtual machine");
             }
             
-            return MapToResponseDto(createdVm);
+            var responseDto = MapToResponseDto(createdVm);
+            
+            // Notify clients
+            await _notificationService.NotifyVmCreatedAsync(responseDto);
+            
+            return responseDto;
         }
 
         public async Task<VirtualMachineResponseDto> UpdateVirtualMachineAsync(int id, UpdateVirtualMachineDto updateVmDto)
@@ -96,12 +105,25 @@ namespace vm_api_backend_appservice.Services
                 throw new BadRequestException($"Failed to update virtual machine with ID {id}");
             }
             
-            return MapToResponseDto(updatedVm);
+            var responseDto = MapToResponseDto(updatedVm);
+            
+            // Notify clients
+            await _notificationService.NotifyVmUpdatedAsync(responseDto);
+            
+            return responseDto;
         }
 
         public async Task<bool> DeleteVirtualMachineAsync(int id)
         {
-            return await _vmRepository.DeleteVirtualMachineAsync(id);
+            var result = await _vmRepository.DeleteVirtualMachineAsync(id);
+            
+            if (result)
+            {
+                // Notify clients
+                await _notificationService.NotifyVmDeletedAsync(id);
+            }
+            
+            return result;
         }
 
         private VirtualMachineResponseDto MapToResponseDto(VirtualMachine vm)

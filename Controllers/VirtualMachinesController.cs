@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using vm_api_backend_appservice.Attributes;
 using vm_api_backend_appservice.Models.DTOs;
 using vm_api_backend_appservice.Services;
+using vm_api_backend_appservice.Exceptions;
 
 namespace vm_api_backend_appservice.Controllers
 {
@@ -11,10 +12,14 @@ namespace vm_api_backend_appservice.Controllers
     public class VirtualMachinesController : ControllerBase
     {
         private readonly IVirtualMachineService _vmService;
+        private readonly ILogger<VirtualMachinesController> _logger;
 
-        public VirtualMachinesController(IVirtualMachineService vmService)
+        public VirtualMachinesController(
+            IVirtualMachineService vmService,
+            ILogger<VirtualMachinesController> logger)
         {
             _vmService = vmService;
+            _logger = logger;
         }
 
         /// <summary>
@@ -27,10 +32,19 @@ namespace vm_api_backend_appservice.Controllers
         [HttpGet]
         [ProducesResponseType(typeof(IEnumerable<VirtualMachineResponseDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<ActionResult<IEnumerable<VirtualMachineResponseDto>>> GetAllVirtualMachines()
         {
-            var vms = await _vmService.GetAllVirtualMachinesAsync();
-            return Ok(vms);
+            try
+            {
+                var vms = await _vmService.GetAllVirtualMachinesAsync();
+                return Ok(vms);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting all virtual machines");
+                return StatusCode(500, new { error = "An error occurred while retrieving virtual machines" });
+            }
         }
 
         /// <summary>
@@ -45,10 +59,24 @@ namespace vm_api_backend_appservice.Controllers
         [ProducesResponseType(typeof(VirtualMachineResponseDto), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<ActionResult<VirtualMachineResponseDto>> GetVirtualMachine(int id)
         {
-            var vm = await _vmService.GetVirtualMachineByIdAsync(id);
-            return Ok(vm);
+            try
+            {
+                var vm = await _vmService.GetVirtualMachineByIdAsync(id);
+                return Ok(vm);
+            }
+            catch (NotFoundException ex)
+            {
+                _logger.LogWarning(ex, "Virtual machine not found: {Id}", id);
+                return NotFound(new { error = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting virtual machine with ID {Id}", id);
+                return StatusCode(500, new { error = "An error occurred while retrieving the virtual machine" });
+            }
         }
 
         /// <summary>
@@ -65,10 +93,24 @@ namespace vm_api_backend_appservice.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<ActionResult<VirtualMachineResponseDto>> CreateVirtualMachine([FromBody] CreateVirtualMachineDto createVmDto)
         {
-            var vm = await _vmService.CreateVirtualMachineAsync(createVmDto);
-            return CreatedAtAction(nameof(GetVirtualMachine), new { id = vm.Id }, vm);
+            try
+            {
+                var vm = await _vmService.CreateVirtualMachineAsync(createVmDto);
+                return CreatedAtAction(nameof(GetVirtualMachine), new { id = vm.Id }, vm);
+            }
+            catch (BadRequestException ex)
+            {
+                _logger.LogWarning(ex, "Bad request when creating virtual machine");
+                return BadRequest(new { error = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error creating virtual machine");
+                return StatusCode(500, new { error = "An error occurred while creating the virtual machine" });
+            }
         }
 
         /// <summary>
@@ -87,10 +129,29 @@ namespace vm_api_backend_appservice.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<ActionResult<VirtualMachineResponseDto>> UpdateVirtualMachine(int id, [FromBody] UpdateVirtualMachineDto updateVmDto)
         {
-            var vm = await _vmService.UpdateVirtualMachineAsync(id, updateVmDto);
-            return Ok(vm);
+            try
+            {
+                var vm = await _vmService.UpdateVirtualMachineAsync(id, updateVmDto);
+                return Ok(vm);
+            }
+            catch (NotFoundException ex)
+            {
+                _logger.LogWarning(ex, "Virtual machine not found when updating: {Id}", id);
+                return NotFound(new { error = ex.Message });
+            }
+            catch (BadRequestException ex)
+            {
+                _logger.LogWarning(ex, "Bad request when updating virtual machine: {Id}", id);
+                return BadRequest(new { error = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating virtual machine with ID {Id}", id);
+                return StatusCode(500, new { error = "An error occurred while updating the virtual machine" });
+            }
         }
 
         /// <summary>
@@ -107,10 +168,24 @@ namespace vm_api_backend_appservice.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<ActionResult> DeleteVirtualMachine(int id)
         {
-            var result = await _vmService.DeleteVirtualMachineAsync(id);
-            return Ok(new { success = result, message = "Virtual machine deleted successfully" });
+            try
+            {
+                var result = await _vmService.DeleteVirtualMachineAsync(id);
+                return Ok(new { success = result, message = "Virtual machine deleted successfully" });
+            }
+            catch (NotFoundException ex)
+            {
+                _logger.LogWarning(ex, "Virtual machine not found when deleting: {Id}", id);
+                return NotFound(new { error = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting virtual machine with ID {Id}", id);
+                return StatusCode(500, new { error = "An error occurred while deleting the virtual machine" });
+            }
         }
     }
 } 
