@@ -10,6 +10,7 @@ using vm_api_backend_appservice.Middleware;
 using vm_api_backend_appservice.Repositories;
 using vm_api_backend_appservice.Services;
 using vm_api_backend_appservice.Utils;
+using vm_api_backend_appservice.Hubs;
 
 Console.WriteLine("Starting VM API " + DateTime.Now.ToString());
 
@@ -20,6 +21,12 @@ builder.Services.AddControllers().AddJsonOptions(options =>
 {
     options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
     options.JsonSerializerOptions.DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull;
+});
+
+// Configure SignalR
+builder.Services.AddSignalR(options => {
+    options.EnableDetailedErrors = true; // Enable detailed errors for debugging
+    options.MaximumReceiveMessageSize = 102400; // Set message size limit (100 KB)
 });
 
 // Get connection string from configuration
@@ -37,6 +44,7 @@ builder.Services.AddScoped<IVirtualMachineRepository, VirtualMachineRepository>(
 // Add Services
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IVirtualMachineService, VirtualMachineService>();
+builder.Services.AddScoped<IVirtualMachineNotificationService, VirtualMachineNotificationService>();
 
 // Add JWT Utils
 builder.Services.AddSingleton<JwtUtils>();
@@ -59,6 +67,25 @@ builder.Services.AddAuthentication(options =>
         ValidAudience = builder.Configuration["Jwt:Audience"],
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!)),
         ClockSkew = TimeSpan.FromMinutes(5)
+    };
+    
+    // Configure JWT Bearer Auth to play nice with SignalR
+    options.Events = new JwtBearerEvents
+    {
+        OnMessageReceived = context =>
+        {
+            var accessToken = context.Request.Query["access_token"];
+            
+            // If the request is for our hub...
+            var path = context.HttpContext.Request.Path;
+            if (!string.IsNullOrEmpty(accessToken) && 
+                path.StartsWithSegments("/hubs/virtualmachines"))
+            {
+                // Read the token out of the query string
+                context.Token = accessToken;
+            }
+            return Task.CompletedTask;
+        }
     };
 });
 
@@ -126,15 +153,16 @@ builder.Services.AddSwaggerGen(c =>
     c.SupportNonNullableReferenceTypes();
 });
 
-// Add CORS
+// Configure CORS
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", builder =>
     {
         builder
-            .SetIsOriginAllowed(_ => true) // Permite cualquier origen
+            .SetIsOriginAllowed(_ => true) // Allow any origin
             .AllowAnyMethod()
-            .AllowAnyHeader();
+            .AllowAnyHeader()
+            .AllowCredentials(); // Required for SignalR
     });
 });
 
@@ -167,7 +195,7 @@ catch (Exception ex)
     Console.WriteLine($"[ERROR] Stack trace: {ex.StackTrace}");
 }
 
-// Use CORS
+// Use CORS - must be placed before SignalR endpoints
 app.UseCors("AllowAll");
 
 app.UseHttpsRedirection();
@@ -182,5 +210,13 @@ app.UseMiddleware<JwtAuthMiddleware>();
 app.UseMiddleware<RoleValidationMiddleware>();
 
 app.MapControllers();
+
+// Configure SignalR routes - send detailed client errors back for debugging
+app.MapHub<VirtualMachineHub>("/hubs/virtualmachines", options => {
+    options.CloseOnAuthenticationExpiration = false; // Don't close connection when auth expires
+    options.TransportMaxBufferSize = 102400; // 100 KB
+    options.ApplicationMaxBufferSize = 102400; // 100 KB
+    options.WebSockets.CloseTimeout = TimeSpan.FromSeconds(30);
+});
 
 app.Run();
