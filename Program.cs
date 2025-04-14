@@ -23,7 +23,7 @@ builder.Services.AddControllers().AddJsonOptions(options =>
 });
 
 // Get connection string from configuration
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+var connectionString = builder.Configuration.GetConnectionString("Default");
 Console.WriteLine($"[DEBUG] Connection String: {connectionString}");
 
 // Add DbContext with MySQL
