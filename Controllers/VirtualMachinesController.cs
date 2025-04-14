@@ -2,14 +2,12 @@ using Microsoft.AspNetCore.Mvc;
 using vm_api_backend_appservice.Attributes;
 using vm_api_backend_appservice.Models.DTOs;
 using vm_api_backend_appservice.Services;
-using Microsoft.AspNetCore.Authorization;
 
 namespace vm_api_backend_appservice.Controllers
 {
     [ApiController]
     [Route("api/vms")]
     [Produces("application/json")]
-    [Authorize]
     public class VirtualMachinesController : ControllerBase
     {
         private readonly IVirtualMachineService _vmService;

@@ -24,7 +24,7 @@ namespace vm_api_backend_appservice.Data
                     Id = 1,
                     Name = "Admin User",
                     Email = "admin@vmapi.com",
-                    Password = BCrypt.Net.BCrypt.HashPassword("Admin123!"), // In production, use proper password hashing
+                    Password = BCrypt.Net.BCrypt.HashPassword("Admin123!"),
                     Role = Models.Enums.Role.Admin,
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow
@@ -38,7 +38,7 @@ namespace vm_api_backend_appservice.Data
                     Id = 2,
                     Name = "Client User",
                     Email = "client@vmapi.com",
-                    Password = BCrypt.Net.BCrypt.HashPassword("Client123!"), // In production, use proper password hashing
+                    Password = BCrypt.Net.BCrypt.HashPassword("Client123!"),
                     Role = Models.Enums.Role.Client,
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow

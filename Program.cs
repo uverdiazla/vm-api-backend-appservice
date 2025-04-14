@@ -11,7 +11,7 @@ using vm_api_backend_appservice.Repositories;
 using vm_api_backend_appservice.Services;
 using vm_api_backend_appservice.Utils;
 
-Console.WriteLine("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! Starting VM API " + DateTime.Now.ToString());
+Console.WriteLine("Starting VM API " + DateTime.Now.ToString());
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -57,7 +57,8 @@ builder.Services.AddAuthentication(options =>
         ValidateIssuerSigningKey = true,
         ValidIssuer = builder.Configuration["Jwt:Issuer"],
         ValidAudience = builder.Configuration["Jwt:Audience"],
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!))
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!)),
+        ClockSkew = TimeSpan.FromMinutes(5)
     };
 });
 
@@ -94,7 +95,7 @@ builder.Services.AddSwaggerGen(c =>
         Scheme = "Bearer",
         BearerFormat = "JWT",
         In = ParameterLocation.Header,
-        Description = "JWT Authorization header using the Bearer scheme. Example: \"Bearer {token}\""
+        Description = "JWT Authorization header using the Bearer scheme. \r\n\r\n Enter 'Bearer' [space] and then your token in the text input below.\r\n\r\nExample: \"Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\""
     });
 
     c.AddSecurityRequirement(new OpenApiSecurityRequirement
@@ -115,13 +116,13 @@ builder.Services.AddSwaggerGen(c =>
     // Add operation filter to document which endpoints require authentication
     c.OperationFilter<SwaggerAuthorizationOperationFilter>();
     
-    // Usar nombres completos para evitar colisiones en IDs de esquema
+    // Use fully qualified names to avoid ID collisions
     c.CustomSchemaIds(type => type.ToString());
     
-    // Evitar esquemas duplicados que pueden causar problemas
+    // Avoid duplicate schemas that can cause issues
     c.UseInlineDefinitionsForEnums();
     
-    // Configurar para manejar tipos nulos y opcionales
+    // Configure to handle nullable and optional types
     c.SupportNonNullableReferenceTypes();
 });
 
@@ -174,18 +175,12 @@ app.UseHttpsRedirection();
 // Add custom middleware for exception handling
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 
-// Configure authentication and authorization middleware
-app.UseAuthentication();
-app.UseAuthorization();
+// Add JWT authentication middleware
+app.UseMiddleware<JwtAuthMiddleware>();
 
-// Add role validation middleware (after auth)
+// Add role validation middleware
 app.UseMiddleware<RoleValidationMiddleware>();
 
-// Redirect root to Swagger
-app.MapGet("/", () => Results.Redirect("/swagger")).ExcludeFromDescription();
-
 app.MapControllers();
-
-Console.WriteLine("VM API is running...");
 
 app.Run();

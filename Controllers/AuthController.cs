@@ -28,7 +28,7 @@ namespace vm_api_backend_appservice.Controllers
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<ActionResult<LoginResponseDto>> Login([FromBody] LoginRequestDto loginRequest)
         {
-            var response = await _authService.LoginAsync(loginRequest);
+            var response = await _authService.LoginAsync(loginRequest);                     
             return Ok(response);
         }
     }
